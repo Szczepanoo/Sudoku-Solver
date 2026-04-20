@@ -25,7 +25,7 @@ def draw_solution(original_path, grid):
                     (x, y),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     1,
-                    (0, 255, 0),
+                    (60, 150, 10),
                     2,
                     cv2.LINE_AA,
                 )

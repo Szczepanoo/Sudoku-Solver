@@ -1,2 +1,7 @@
 .venv
 __pycache__
+debug_cells
+dataset_raw
+dataset
+sudoku_images
+digit_cnn.pth

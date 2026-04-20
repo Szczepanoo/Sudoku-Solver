@@ -1,7 +1,7 @@
 import cv2
 from typing import List
-from ocr import extract_digit, preprocess_cell
-from debug import debug_cells  # 👈 nowy import
+from classify import extract_digit, preprocess_cell
+from debug import debug_cells, debug_ocr_cell
 
 Grid = List[List[int]]
 
@@ -34,7 +34,20 @@ def image_to_grid(path: str, debug=False) -> Grid:
             processed = preprocess_cell(cell)
             processed_cells.append(processed)
 
+            processed = preprocess_cell(cell)
+
             digit = extract_digit(cell)
+
+            if debug:
+                debug_ocr_cell(
+                    cell,
+                    processed,
+                    digit,
+                    r,
+                    c,
+                    save_dir="debug_cells"
+                )
+
             grid[r][c] = digit
 
     if debug:

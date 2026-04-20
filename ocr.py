@@ -1,59 +1,98 @@
 import cv2
-import numpy as np
-import easyocr
-
 import torch
-import easyocr
+import numpy as np
+from PIL import Image
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
-def create_reader(use_gpu=True):
-    if use_gpu and torch.cuda.is_available():
-        print("🚀 EasyOCR: używam GPU")
-        return easyocr.Reader(['en'], gpu=True)
-    else:
-        print("🐌 EasyOCR: fallback na CPU")
-        return easyocr.Reader(['en'], gpu=False)
+# =========================
+# CONFIG
+# =========================
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+print(f"🧠 TrOCR using: {DEVICE}")
+
+processor = TrOCRProcessor.from_pretrained("microsoft/trocr-small-printed")
+
+model = VisionEncoderDecoderModel.from_pretrained(
+    "microsoft/trocr-small-printed"
+).to(DEVICE)
 
 
-# global reader (lazy init)
-_reader = None
-
-
-def get_reader(use_gpu=True):
-    global _reader
-    if _reader is None:
-        _reader = create_reader(use_gpu)
-    return _reader
-
+# =========================
+# PREPROCESS
+# =========================
 
 def preprocess_cell(cell):
     gray = cv2.cvtColor(cell, cv2.COLOR_BGR2GRAY)
+
+    # kontrast
     gray = cv2.equalizeHist(gray)
 
+    # threshold
     _, th = cv2.threshold(
         gray, 0, 255,
         cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
     )
 
-    kernel = np.ones((3, 3), np.uint8)
-    th = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel)
-
     return th
 
+
+# =========================
+# OCR
+# =========================
 
 def extract_digit(cell):
     processed = preprocess_cell(cell)
 
-    if cv2.countNonZero(processed) < 50:
+    if cv2.countNonZero(processed) < 30:
         return 0
 
-    reader = get_reader()
+    pil_img = Image.fromarray(processed)
 
-    results = reader.readtext(processed, detail=0, paragraph=False)
+    pixel_values = processor(
+        pil_img,
+        return_tensors="pt"
+    ).pixel_values.to(DEVICE)
 
-    if not results:
+    with torch.no_grad():
+        generated_ids = model.generate(
+            pixel_values,
+            max_new_tokens=2,
+            num_beams=1
+        )
+
+    text = processor.batch_decode(
+        generated_ids,
+        skip_special_tokens=True
+    )[0].strip()
+
+    # 🔥 NORMALIZACJA POD SUDOKU
+    return normalize_digit(text)
+
+
+# =========================
+# POSTPROCESS
+# =========================
+
+def normalize_digit(text: str) -> int:
+    if not text:
         return 0
 
-    text = results[0].strip()
+    text = text.strip()
+
+    # typowe błędy OCR
+    mapping = {
+        "I": "1",
+        "l": "1",
+        "|": "1",
+        "O": "0",
+        "S": "5",
+        "B": "8",
+        "G": "6"
+    }
+
+    text = mapping.get(text, text)
 
     if text.isdigit():
         val = int(text)
