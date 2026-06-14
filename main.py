@@ -12,7 +12,7 @@ def main():
     parser.add_argument("--debug", action="store_true", help="tryb debug (podgląd komórek)")
     args = parser.parse_args()
 
-    print("📸 OCR (EasyOCR)...")
+    print("📸 Wczytywanie zdjęcia...")
     grid = image_to_grid(args.image, debug=args.debug)
 
     print("\n🧩 Wykryte sudoku:")

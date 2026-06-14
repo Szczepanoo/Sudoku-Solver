@@ -8,6 +8,7 @@ import numpy as np
 # =========================
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE = 'cpu'
 
 # =========================
 # MODEL
