@@ -1,16 +1,17 @@
-#!/usr/bin/env python3
-
 import sys
 import cv2
 import ctypes
+import random
+
+from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton,
-    QVBoxLayout, QHBoxLayout, QGridLayout
-)
+    QVBoxLayout, QHBoxLayout, QGridLayout, QLineEdit,
+    QGraphicsOpacityEffect)
 
-from PyQt5.QtGui import QPixmap, QImage, QFont, QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import (QPixmap, QImage, QFont, 
+    QIcon, QIntValidator)
 
 from image_processing import image_to_grid
 from solver import solve_backtrack
@@ -48,15 +49,23 @@ class SudokuApp(QWidget):
         title.setFont(title_font)
 
         self.image_label = QLabel(
-            "📋 Wklej zdjęcie sudoku\n\nCtrl + V"
+            "📋 Paste picture of sudoku\n\nCtrl + V"
         )
         self.image_label.setObjectName("ImageArea")
         self.image_label.setAlignment(Qt.AlignCenter)
         self.image_label.setMinimumHeight(320)
 
-        self.solve_btn = QPushButton("Rozwiąż Sudoku")
+        self.load_btn = QPushButton("Load")
+        self.load_btn.setCursor(Qt.PointingHandCursor)
+        self.load_btn.clicked.connect(self.load_sudoku)
+
+        self.solve_btn = QPushButton("Solve")
         self.solve_btn.setCursor(Qt.PointingHandCursor)
         self.solve_btn.clicked.connect(self.solve)
+
+        self.generate_btn = QPushButton("Generate")
+        self.generate_btn.setCursor(Qt.PointingHandCursor)
+        self.generate_btn.clicked.connect(self.generate_sudoku)
 
         # Plansza sudoku
         self.grid_labels = []
@@ -67,9 +76,18 @@ class SudokuApp(QWidget):
             row = []
 
             for c in range(9):
-                cell = QLabel("")
+                cell = QLineEdit()
                 cell.setAlignment(Qt.AlignCenter)
                 cell.setFixedSize(55, 55)
+
+                cell.setMaxLength(1)
+                cell.setValidator(QIntValidator(1, 9))
+
+                cell.textEdited.connect(
+                    lambda _, c=cell: c.setStyleSheet(
+                        c.styleSheet() + "color: white;"
+                    )
+                )
 
                 top = 3 if r % 3 == 0 else 1
                 left = 3 if c % 3 == 0 else 1
@@ -97,7 +115,11 @@ class SudokuApp(QWidget):
         # =========================
 
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+
+        btn_layout.addWidget(self.load_btn)
         btn_layout.addWidget(self.solve_btn)
+        btn_layout.addWidget(self.generate_btn)
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -111,6 +133,15 @@ class SudokuApp(QWidget):
         board_widget.setLayout(self.sudoku_grid)
 
         main_layout.addWidget(board_widget, alignment=Qt.AlignCenter)
+
+        signature = QLabel("© Jacob Digital Entertainment 2026")
+        signature.setStyleSheet("""
+            color: #777;
+            font-size: 11px;
+        """)
+
+        main_layout.addStretch()
+        main_layout.addWidget(signature, alignment=Qt.AlignLeft)
 
         self.setLayout(main_layout)
 
@@ -163,6 +194,45 @@ class SudokuApp(QWidget):
             padding: 10px;
         }
         """)
+    
+
+    def show_toast(self, message, duration=1500):
+        toast = QLabel(message, self)
+
+        toast.setStyleSheet("""
+            background-color: #282828;
+            color: white;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 20px;
+        """)
+
+        toast.adjustSize()
+
+        x = (self.width() - toast.width()) // 2
+        y = self.height() - 80
+
+        toast.move(x, y)
+        toast.show()
+        toast.raise_()
+
+        effect = QGraphicsOpacityEffect(toast)
+        effect.setOpacity(1.0)
+        toast.setGraphicsEffect(effect)
+
+        animation = QPropertyAnimation(effect, b"opacity")
+        animation.setDuration(2000)
+        animation.setStartValue(1.0)
+        animation.setEndValue(0.0)
+
+        def start_fade():
+            animation.start()
+
+        QTimer.singleShot(duration, start_fade)
+
+        animation.finished.connect(toast.deleteLater)
+
+        toast.animation = animation
 
     # =========================
     # Clipboard handling
@@ -214,7 +284,21 @@ class SudokuApp(QWidget):
 
     def solve(self):
 
-        grid = image_to_grid("temp_input.png")
+        # Odczyt aktualnej planszy z GUI
+        grid = []
+
+        for r in range(9):
+            row = []
+
+            for c in range(9):
+                text = self.grid_labels[r][c].text().strip()
+
+                if text == "":
+                    row.append(0)
+                else:
+                    row.append(int(text))
+
+            grid.append(row)
 
         original_grid = [row[:] for row in grid]
 
@@ -223,12 +307,11 @@ class SudokuApp(QWidget):
             for r in range(9):
                 for c in range(9):
 
-                    value = str(grid[r][c])
-
+                    # Pole było już wcześniej wypełnione
                     if original_grid[r][c] != 0:
-                        color = "#22c55e"   # zielony OCR
-                    else:
-                        color = "#60a5fa"   # niebieski solver
+                        continue
+
+                    value = str(grid[r][c])
 
                     top = 3 if r % 3 == 0 else 1
                     left = 3 if c % 3 == 0 else 1
@@ -243,13 +326,155 @@ class SudokuApp(QWidget):
                         border-left: {left}px solid #888;
                         border-right: {right}px solid #888;
                         border-bottom: {bottom}px solid #888;
-                        color: {color};
+                        color: #22c55e;
                         font-size: 22px;
                         font-weight: bold;
                     """)
+                    self.show_toast("✅ Sudoku solved!")
 
         else:
-            self.clear_board()
+            self.show_toast("❌ No solution found")
+
+    # =========================
+    # Load
+    # =========================
+
+    def load_sudoku(self):
+
+        if self.image is None:
+            self.show_toast("❌ No sudoku found")
+            return
+
+        self.clear_board()
+
+        grid = image_to_grid("temp_input.png")
+
+        for r in range(9):
+            for c in range(9):
+
+                value = grid[r][c]
+
+                if value == 0:
+                    continue
+
+                top = 3 if r % 3 == 0 else 1
+                left = 3 if c % 3 == 0 else 1
+                bottom = 3 if r == 8 else 1
+                right = 3 if c == 8 else 1
+
+                self.grid_labels[r][c].setText(str(value))
+
+                self.grid_labels[r][c].setStyleSheet(f"""
+                    background-color: #252526;
+                    border-top: {top}px solid #888;
+                    border-left: {left}px solid #888;
+                    border-right: {right}px solid #888;
+                    border-bottom: {bottom}px solid #888;
+                    color: #888;
+                    font-size: 22px;
+                    font-weight: bold;
+                """)
+                self.show_toast("✅ Sudoku loaded!")
+
+
+    # =========================
+    # Generate
+    # =========================
+
+    def generate_sudoku(self):
+
+        def is_valid(board, row, col, num):
+
+            for x in range(9):
+                if board[row][x] == num:
+                    return False
+
+            for x in range(9):
+                if board[x][col] == num:
+                    return False
+
+            start_row = (row // 3) * 3
+            start_col = (col // 3) * 3
+
+            for r in range(start_row, start_row + 3):
+                for c in range(start_col, start_col + 3):
+                    if board[r][c] == num:
+                        return False
+
+            return True
+
+        def fill_board(board):
+
+            for row in range(9):
+                for col in range(9):
+
+                    if board[row][col] == 0:
+
+                        nums = list(range(1, 10))
+                        random.shuffle(nums)
+
+                        for num in nums:
+
+                            if is_valid(board, row, col, num):
+
+                                board[row][col] = num
+
+                                if fill_board(board):
+                                    return True
+
+                                board[row][col] = 0
+
+                        return False
+
+            return True
+
+        # Generacja pełnego sudoku
+        board = [[0 for _ in range(9)] for _ in range(9)]
+        fill_board(board)
+
+        # Kopia pełnego rozwiązania (opcjonalnie)
+        self.solution = [row[:] for row in board]
+
+        # Usuwanie pól
+        cells_to_remove = 50
+
+        for _ in range(cells_to_remove):
+
+            row = random.randint(0, 8)
+            col = random.randint(0, 8)
+
+            board[row][col] = 0
+
+        self.clear_board()
+
+        for r in range(9):
+            for c in range(9):
+
+                value = board[r][c]
+
+                if value == 0:
+                    continue
+
+                top = 3 if r % 3 == 0 else 1
+                left = 3 if c % 3 == 0 else 1
+                bottom = 3 if r == 8 else 1
+                right = 3 if c == 8 else 1
+
+                self.grid_labels[r][c].setText(str(value))
+
+                self.grid_labels[r][c].setStyleSheet(f"""
+                    background-color: #252526;
+                    border-top: {top}px solid #888;
+                    border-left: {left}px solid #888;
+                    border-right: {right}px solid #888;
+                    border-bottom: {bottom}px solid #888;
+                    color: #888;
+                    font-size: 22px;
+                    font-weight: bold;
+                """)
+                self.show_toast("✅ Sudoku generated!")
+    
+
     # =========================
     # Resize handling
     # =========================
