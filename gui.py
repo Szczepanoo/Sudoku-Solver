@@ -15,7 +15,7 @@ from PyQt5.QtGui import (QPixmap, QImage, QFont,
     QIcon, QIntValidator)
 
 from image_processing import image_to_grid
-from solver import solve_backtrack
+from solver import solve_backtrack, is_valid_input
 from utils import resource_path
 
 def cv_to_qt(img):
@@ -71,7 +71,7 @@ class SudokuApp(QWidget):
         self.clear_btn = QPushButton("Clear")
         self.clear_btn.setObjectName("ClearButton")
         self.clear_btn.setCursor(Qt.PointingHandCursor)
-        self.clear_btn.clicked.connect(self.clear_board)
+        self.clear_btn.clicked.connect(self.clear_board_by_click)
 
         # Plansza sudoku
         self.grid_labels = []
@@ -144,7 +144,7 @@ class SudokuApp(QWidget):
         signature = QLabel("© Jacob Digital Entertainment 2026")
         signature.setStyleSheet("""
             color: #777;
-            font-size: 11px;
+            font-size: 14px;
         """)
 
         main_layout.addStretch()
@@ -323,6 +323,10 @@ class SudokuApp(QWidget):
             grid.append(row)
 
         original_grid = [row[:] for row in grid]
+
+        if not is_valid_input(grid):
+            self.show_toast("❌ Invalid input")
+            return
 
         if solve_backtrack(grid):
 
@@ -515,6 +519,11 @@ class SudokuApp(QWidget):
         for row in self.grid_labels:
             for cell in row:
                 cell.setText("")
+
+    
+    def clear_board_by_click(self):
+        self.clear_board()
+        self.show_toast("✅ Board cleared!")
 
 
 # =========================

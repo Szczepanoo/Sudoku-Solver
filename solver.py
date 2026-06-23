@@ -38,3 +38,23 @@ def solve_backtrack(grid: Grid) -> bool:
                 return True
             grid[r][c] = 0
     return False
+
+
+def is_valid_input(grid: Grid) -> bool:
+    for row in range(9):
+        for col in range(9):
+
+            value = grid[row][col]
+
+            if value == 0:
+                continue
+
+            grid[row][col] = 0
+
+            if not is_valid(grid, row, col, value):
+                grid[row][col] = value
+                return False
+
+            grid[row][col] = value
+
+    return True
