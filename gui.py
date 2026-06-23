@@ -67,6 +67,11 @@ class SudokuApp(QWidget):
         self.generate_btn.setCursor(Qt.PointingHandCursor)
         self.generate_btn.clicked.connect(self.generate_sudoku)
 
+        self.clear_btn = QPushButton("Clear")
+        self.clear_btn.setObjectName("ClearButton")
+        self.clear_btn.setCursor(Qt.PointingHandCursor)
+        self.clear_btn.clicked.connect(self.clear_board)
+
         # Plansza sudoku
         self.grid_labels = []
         self.sudoku_grid = QGridLayout()
@@ -120,6 +125,7 @@ class SudokuApp(QWidget):
         btn_layout.addWidget(self.load_btn)
         btn_layout.addWidget(self.solve_btn)
         btn_layout.addWidget(self.generate_btn)
+        btn_layout.addWidget(self.clear_btn)
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -193,6 +199,19 @@ class SudokuApp(QWidget):
             border-radius: 10px;
             padding: 10px;
         }
+                           
+        QPushButton#ClearButton {
+            background-color: #dc2626;
+        }
+
+        QPushButton#ClearButton:hover {
+            background-color: #ef4444;
+        }
+
+        QPushButton#ClearButton:pressed {
+            background-color: #b91c1c;
+        }
+                           
         """)
     
 
@@ -258,6 +277,12 @@ class SudokuApp(QWidget):
             self.display_image()
 
             self.clear_board()
+
+
+    def clear_board(self):
+        for row in self.grid_labels:
+            for cell in row:
+                cell.clear()
 
     # =========================
     # Display
