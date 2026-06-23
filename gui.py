@@ -15,7 +15,7 @@ from PyQt5.QtGui import (QPixmap, QImage, QFont,
 
 from image_processing import image_to_grid
 from solver import solve_backtrack
-
+from utils import resource_path
 
 def cv_to_qt(img):
     """Konwersja OpenCV (BGR) -> QPixmap"""
@@ -31,7 +31,7 @@ class SudokuApp(QWidget):
         super().__init__()
 
         self.setWindowTitle("Sudoku Solver")
-        self.setWindowIcon(QIcon("icon.ico"))
+        self.setWindowIcon(QIcon(resource_path("icon.ico")))
         self.resize(900, 700)
 
         self.image = None

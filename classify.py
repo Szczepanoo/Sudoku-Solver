@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 import cv2
 import numpy as np
+from utils import resource_path
 
 # =========================
 # CONFIG
 # =========================
 
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DEVICE = 'cpu'
 
 # =========================
@@ -54,7 +55,7 @@ def get_model():
     if _model is None:
         model = DigitCNN().to(DEVICE)
         model.load_state_dict(
-            torch.load("digit_cnn.pth", map_location=DEVICE)
+            torch.load(resource_path("digit_cnn.pth"), map_location=DEVICE)
         )
         model.eval()
 
