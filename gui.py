@@ -2,6 +2,7 @@ import sys
 import cv2
 import ctypes
 import random
+import os
 
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation
 
@@ -270,19 +271,15 @@ class SudokuApp(QWidget):
             if self.qt_image.isNull():
                 return
 
-            self.qt_image.save("temp_input.png")
+            self.qt_image.save("JDE_SUDOKU_TEMP_IMAGE.png")
 
-            self.image = cv2.imread("temp_input.png")
+            self.image = cv2.imread("JDE_SUDOKU_TEMP_IMAGE.png")
+
+            os.remove("JDE_SUDOKU_TEMP_IMAGE.png")
 
             self.display_image()
 
             self.clear_board()
-
-
-    def clear_board(self):
-        for row in self.grid_labels:
-            for cell in row:
-                cell.clear()
 
     # =========================
     # Display
@@ -367,12 +364,12 @@ class SudokuApp(QWidget):
     def load_sudoku(self):
 
         if self.image is None:
-            self.show_toast("❌ No sudoku found")
+            self.show_toast("❌ No image found")
             return
 
         self.clear_board()
 
-        grid = image_to_grid("temp_input.png")
+        grid = image_to_grid(self.image)
 
         for r in range(9):
             for c in range(9):
@@ -540,8 +537,6 @@ def main():
         ctypes.byref(value),
         ctypes.sizeof(value)
     )
-
-    sys.exit(app.exec_())
 
     sys.exit(app.exec_())
 

@@ -1,13 +1,12 @@
-import cv2
 from typing import List
 from classify import extract_digit, preprocess_cell
 from debug import debug_cells, debug_ocr_cell
+import numpy as np
 
 Grid = List[List[int]]
 
 
-def image_to_grid(path: str, debug=False) -> Grid:
-    img = cv2.imread(path)
+def image_to_grid(img: np.ndarray, debug=False) -> Grid:
 
     if img is None:
         raise ValueError("Nie można wczytać obrazu")
