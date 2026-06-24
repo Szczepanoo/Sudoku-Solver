@@ -17,6 +17,7 @@ from PyQt5.QtGui import (QPixmap, QImage, QFont,
 from image_processing import image_to_grid
 from solver import solve_backtrack, is_valid_input
 from utils import resource_path
+from detect import detect_sudoku
 
 def cv_to_qt(img):
     """Konwersja OpenCV (BGR) -> QPixmap"""
@@ -369,6 +370,12 @@ class SudokuApp(QWidget):
 
         if self.image is None:
             self.show_toast("❌ No image found")
+            return
+        
+        self.image = detect_sudoku(self.image)
+
+        if self.image is None:
+            self.show_toast("❌ No sudoku detected")
             return
 
         self.clear_board()
